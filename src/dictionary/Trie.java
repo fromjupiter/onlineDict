@@ -1,9 +1,10 @@
 package dictionary;
+
 import java.io.*;
-
 import javax.swing.DefaultListModel;
+import commonType.*;
+import java.sql.*;
 
-import commonType.Word;
 //字典树参考百度百科“字典树”词条 实现。
 class Trie {
 	protected TrieNode root=new TrieNode();
@@ -243,7 +244,7 @@ class Trie {
 		}
 		return node;
 	}
-	public String getExpByName(String name){
+	public String getExpByName(String name,int source){
 		if(name == null){
 			return null;
 		}else if(name.length()==0)
@@ -287,7 +288,7 @@ class Trie {
 		if(node.word == null)
 			return null;
 		else 
-			return node.word.getExp();
+			return node.word.getExp(source);
 	}
 	public boolean isExisted(String name){
 		if(name == null){
@@ -339,36 +340,13 @@ class Trie {
 		return isExisted(wd.getName());
 	}
 	public void generateTrie(String path){
-		//通过path的字典文件生成字典树
-		try{
-			BufferedReader br= new BufferedReader(new FileReader(path));
-			br.readLine();//第一行舍去
-			String dataLine=br.readLine();
-			while(dataLine != null){
-				String[] data=dataLine.split("\t");
-				//对应字典文件的四个属性
-				Word wd=new Word(data[1],data[2],data[3]);
-				this.insert(wd);
-				dataLine=br.readLine();
-			}
-		}catch(FileNotFoundException e){
-			e.printStackTrace();
-		}catch(IOException e){
-			e.printStackTrace();
-		}
+		//通过数据库生成字典树
+		
 	}
 	
 	public void addWord(Word wd){
 		this.insert(wd);
-		//加入txt字典文件中
-		try{
-			FileWriter fw=new FileWriter("added_words.txt",true);
-			fw.write("1\t"+wd.getName()+"\t"+wd.getPron()+"\t"+wd.getExp()+"\n");
-			fw.close();
-		}catch(FileNotFoundException e){
-			e.printStackTrace();
-		}catch(IOException e){
-			e.printStackTrace();
-		}
+		//将变化加入数据库
+		
 	}
 }
