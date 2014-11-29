@@ -2,6 +2,8 @@ package dictionary;
 import java.io.*;
 
 import javax.swing.DefaultListModel;
+
+import commonType.Word;
 //字典树参考百度百科“字典树”词条 实现。
 class Trie {
 	protected TrieNode root=new TrieNode();

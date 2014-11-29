@@ -1,5 +1,5 @@
-package dictionary;
-class Word {
+package commonType;
+public class Word {
 	private String name;
 	private String pron;//发音
 	private String exp;//释义
