@@ -2,7 +2,9 @@ package commonType;
 
 import java.util.Arrays;
 
-public class Word {
+public class Word implements java.io.Serializable{
+	private static final long serialVersionUID = 1L;
+	
 	private String name;
 	private String[] pron=new String[constants.SOURCE_SITES_NUM];//发音
 	private String[] exp=new String[constants.SOURCE_SITES_NUM];//释义
@@ -13,8 +15,12 @@ public class Word {
 		}
 	}
 	public Word(String name){
+		name=new String(name);
 		//通过name联网获取释义
 		
+		for(int i=0;i<constants.SOURCE_SITES_NUM;i++){
+			like_count[i]=0;
+		}
 	}
 	public Word(Word cp){
 		this.name=new String(cp.name);
@@ -33,6 +39,20 @@ public class Word {
 	}
 	public String getExp(int i){
 		return new String(exp[i]);
+	}
+	public void setPron(int i,String s){
+		pron[i]=new String(s);
+	}
+	public void setExp(int i,String s){
+		exp[i]=new String(s);
+	}
+	public void like(int source){
+		//source start from 1
+		like_count[source-1]++;
+	}
+	public void dislike(int source){
+		//source start from 1
+		like_count[source-1]--;
 	}
 	public int getLikeCount(int i){
 		return like_count[i];

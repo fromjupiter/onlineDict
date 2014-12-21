@@ -72,47 +72,6 @@ class Trie {
 		}
 		node.word=wd;
 	}
-	public void shiftUpCurrent(String str){
-		//将current上移一层
-		if(current!=null && str.length()>0){
-			current=current.parent;
-		}else{
-			//父节点信息丢失，重新查找
-			current=find(str);
-		}
-	}
-	public void shiftDownCurrent(char ch){
-		//将current下滑一层
-		if(current != null){
-			int pos;
-			switch(ch){
-			case '?':
-				pos=33;break;
-			case '!':
-				pos=32;break;
-			case ',':
-				pos=31;break;
-			case '-':
-				pos=30;break;
-			case '\'':
-				pos=29;break;
-			case '/':
-				pos=28;break;
-			case '.':
-				pos=27;break;
-			case ' ':
-				pos=26;break;
-			default:
-				if(ch>='a' && ch<='z')
-					pos=ch-'a';
-				else if(ch>='A' && ch<='Z')
-					pos=ch-'A';
-				else //其他未知字符
-					pos=26;//与space归在一类
-			}
-			current=current.son[pos];
-		}
-	}
 	public void preTraverse(TrieNode node,DefaultListModel<Word> wordList){
 		//遍历node的子节点来生成wordList,最多加入30个元素
 		if(node != null && wordList.getSize()<30){
@@ -137,13 +96,6 @@ class Trie {
 			wordList.clear();
 			wordList.addElement(temp);
 			spellCorrection(str,wordList);
-		}
-	}
-	public void traverseByCurrent(DefaultListModel<Word> wordList){
-		//通过current生成列表,不带纠错
-		if(current!=null){
-			wordList.clear();
-			preTraverse(current,wordList);
 		}
 	}
 	public void spellCorrection(String str,DefaultListModel<Word> wordList){
@@ -200,12 +152,11 @@ class Trie {
 			}
 		}
 	}
-	public TrieNode find(String name){
+	public Word find(String name){
 		//通过name在字典树中查找单词
-		if(name == null){
+		if(name == null ||name.length()==0){
 			return null;
-		}else if(name.length()==0)
-			return root;
+		}
 		TrieNode node=root;
 		char[] letters= name.toCharArray();
 		for(int i=0;i<letters.length;i++){
@@ -242,7 +193,7 @@ class Trie {
 				return null;
 			}
 		}
-		return node;
+		return node.word;
 	}
 	public String getExpByName(String name,int source){
 		if(name == null){
@@ -343,7 +294,6 @@ class Trie {
 		//通过数据库生成字典树
 		
 	}
-	
 	public void addWord(Word wd){
 		this.insert(wd);
 		//将变化加入数据库
