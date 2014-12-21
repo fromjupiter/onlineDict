@@ -40,6 +40,9 @@ public class Word implements java.io.Serializable{
 	public String getExp(int i){
 		return new String(exp[i]);
 	}
+	public void setName(String s){
+		name=new String(s);
+	}
 	public void setPron(int i,String s){
 		pron[i]=new String(s);
 	}

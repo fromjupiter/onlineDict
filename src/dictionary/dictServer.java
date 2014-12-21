@@ -254,10 +254,26 @@ public class dictServer {
 			 */
 			try{
 				result=searchEngine.search_all(name);
+				if(result.getExp(0).equals(""))
+					//没有释义，不是单词
+					return null;
+				
 			}catch(Exception e){
 				e.printStackTrace();
 			}
 			trieTree.addWord(result);
+			//db
+			try{
+				Statement stmt=con.createStatement();
+				String query="insert into word values('"+name+"','"
+						+result.getPron(0)+"','"+result.getExp(0)+"',"+result.getLikeCount(0)+",'"
+						+result.getPron(1)+"','"+result.getExp(1)+"',"+result.getLikeCount(1)+",'"
+						+result.getPron(2)+"','"+result.getExp(2)+"',"+result.getLikeCount(2)+",'"
+						+");";
+				stmt.executeUpdate(query);
+			}catch(SQLException e){
+				e.printStackTrace();
+			}
 		}
 		return result;
 	}
