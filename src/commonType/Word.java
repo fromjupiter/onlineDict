@@ -2,6 +2,8 @@ package commonType;
 
 import java.util.Arrays;
 
+import dictionary.searchEngine;
+
 public class Word implements java.io.Serializable{
 	private static final long serialVersionUID = 1L;
 	
@@ -16,8 +18,6 @@ public class Word implements java.io.Serializable{
 	}
 	public Word(String name){
 		name=new String(name);
-		//通过name联网获取释义
-		
 		for(int i=0;i<constants.SOURCE_SITES_NUM;i++){
 			like_count[i]=0;
 		}

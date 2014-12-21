@@ -8,6 +8,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.sql.*;
 
 public class dictServer {
@@ -37,24 +38,36 @@ public class dictServer {
 			 	返回User
 			刷新用户状态：wdzmfkx#10013#用户名
 				返回User
+			登出: wdzmfkx#10013#用户名
+				返回bool值	
 			查询单词:wdzmfkx#10100#用户名#单词名
 				返回Word以及三个bool值（对应是否点过赞）
-			发送卡片:wdzmfkx#10200#用户名#接收者#单词名#附加的话
+			发送卡片:wdzmfkx#10200#用户名#接收者#单词名#source#附加的话
 				返回Card
 			点赞:wdzmfkx#10300#用户名#单词名#来源(1,2,3)
 				返回bool值
 			取消赞:wdzmfkx#10301#用户名#单词名#来源(1,2,3)
 				返回bool值
 			 ***/
+			System.out.println("a new thread is running..");
 			InetAddress clientIp=clientSocket.getInetAddress();
 			while(true){
 				String cmd=null;
 				try{
 					cmd=sin.readLine();
-				}catch(IOException e){
-					e.printStackTrace();
+					if(cmd==null)
+						continue;
+				}catch(IOException TimeOut){
+					//用户未响应，已经下线
+					for(User i:activeUsers){
+						if(i.getIpAddr().equals(clientIp))
+							logOut(i.getName());
+					}
+					TimeOut.printStackTrace();
+					return;
 				}
 				String[] args=cmd.split("#");
+				
 				if(!args[0].equals("wdzmfkx")){
 					continue;
 				}
@@ -69,10 +82,11 @@ public class dictServer {
 					}catch(IOException e){
 						e.printStackTrace();
 					}
+					System.out.println("already sent online users!");
 				}else if(args[1].equals("10011")){
 					//注册
 					assert args.length==5;
-					boolean temp=register(args[2],args[3],args[4]);;
+					boolean temp=register(args[2],args[3],args[4]);
 					try{
 						oout.writeBoolean(temp);
 					}catch(IOException e){
@@ -82,6 +96,7 @@ public class dictServer {
 					//登录
 					assert args.length==4;
 					User temp=logIn(args[2],args[3],clientIp.getHostName());
+					System.out.println(temp.toString());
 					try{
 						oout.writeObject(temp);
 					}catch(IOException e){
@@ -100,6 +115,26 @@ public class dictServer {
 							e.printStackTrace();
 						}
 					}
+				}else if(args[1].equals("10014")){
+					//登出
+					assert args.length==3;
+					User client=get_active_user(args[2]);
+					try{
+						if(clientIp.equals(client.getIpAddr())){
+							//确认请求来源与用户登录时的IP地址一致
+							try{
+								logOut(args[2]);
+								oout.writeBoolean(true);
+							}catch(IOException e){
+								e.printStackTrace();
+							}
+						}else{
+							System.out.println("ILLEGAL LOG OUT:user don't match.");
+							oout.writeBoolean(false);
+						}
+					}catch(IOException e){
+						e.printStackTrace();
+					}
 				}else if(args[1].equals("10100")){
 					//查询单词
 					assert args.length==4;
@@ -114,8 +149,9 @@ public class dictServer {
 					}
 				}else if(args[1].equals("10200")){
 					//发送卡片
-					assert args.length==6;
-					boolean temp=send_card(args[2],args[3],args[4],args[5]);
+					assert args.length==7;
+					boolean temp=send_card(args[2],args[3],args[4],
+								Integer.parseInt(args[5]),args[6]);
 					try{
 						oout.writeBoolean(temp);
 					}catch(IOException e){
@@ -124,7 +160,8 @@ public class dictServer {
 					User receiver=get_active_user(args[3]);
 					if(receiver != null){
 						//接收方在线,通知接收方
-						receiver.receiveCard(args[2], args[3], getWord(args[4]), args[5]);
+						receiver.receiveCard(args[2], args[3], getWord(args[4]),
+								Integer.parseInt(args[5]),args[6]);
 					}
 				}else if(args[1].equals("10300")){
 					//点赞
@@ -135,6 +172,12 @@ public class dictServer {
 					//取消赞
 					assert args.length==5;
 					dislike_word(args[2],args[3],Integer.parseInt(args[4]));
+				}
+				
+				try{
+					oout.flush();
+				}catch(IOException e){
+					e.printStackTrace();
 				}
 			}
 		}
@@ -209,6 +252,11 @@ public class dictServer {
 			/*
 			 * 查找网络释义
 			 */
+			try{
+				result=searchEngine.search_all(name);
+			}catch(Exception e){
+				e.printStackTrace();
+			}
 			trieTree.addWord(result);
 		}
 		return result;
@@ -245,7 +293,8 @@ public class dictServer {
 					String sender=rs.getString("sender");
 					String wordName=rs.getString("word");
 					String script=rs.getString("script");
-					current_user.receiveCard(sender, userName, getWord(wordName), script);
+					int source=rs.getInt("source");
+					current_user.receiveCard(sender, userName, getWord(wordName),source,script);
 				}
 				activeUsers.add(current_user);
 			}
@@ -266,7 +315,7 @@ public class dictServer {
 			ResultSet rs=stmt.executeQuery(query);
 			if(rs.next()==false){
 				query="insert into user(username,password,nickname) values('"+userName+
-						"','"+passWord+"','"+nickName+"';";
+						"','"+passWord+"','"+nickName+"');";
 				stmt.executeUpdate(query);
 			}else{
 				System.out.println("register FAIL:ALREADY EXIST!");
@@ -278,7 +327,7 @@ public class dictServer {
 		return true;
 	}
 	
-	public boolean send_card(String sender,String receiver,String wordName,String script){
+	public boolean send_card(String sender,String receiver,String wordName,int source,String script){
 		//分享卡片
 		Word result=trieTree.find(wordName);
 		if(result == null){
@@ -294,8 +343,8 @@ public class dictServer {
 				return false;
 			}
 			
-			query="insert into word_card(sender,receiver,word,script) values('"
-					+sender+"','"+receiver+"','"+wordName+"','"+script+"';";
+			query="insert into word_card(sender,receiver,word,source,script) values('"
+					+sender+"','"+receiver+"','"+wordName+"',"+source+",'"+script+"');";
 			stmt.executeUpdate(query);
 			return true;
 		}catch(SQLException e){
@@ -318,7 +367,7 @@ public class dictServer {
 			ResultSet rs=stmt.executeQuery(query);
 			if(rs.next()!=false){
 				int uid=rs.getInt("uid");
-				query="insert into like_word(uid,word) values("+uid+",'"+wordName+",'"+source+"';";
+				query="insert into like_word(uid,word) values("+uid+",'"+wordName+",'"+source+"');";
 				stmt.executeUpdate(query);
 			}else{
 				System.out.println("like word FAIL:USER DOESN'T EXIST!");
